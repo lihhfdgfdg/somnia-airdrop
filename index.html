@@ -1,146 +1,203 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Somnia Airdrop Qualification Check</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Somnia Airdrop Eligibility</title>
   <style>
     body {
+      background-color: #0d1117;
+      color: #fff;
       font-family: Arial, sans-serif;
-      background: #0f172a;
-      color: #f8fafc;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
       margin: 0;
-      padding: 40px 16px;
-      text-align: center;
     }
-    h1 { margin: 0 0 12px; font-size: 28px; }
-    .sub { color:#cbd5e1; font-size:14px; margin-bottom: 24px; }
     .card {
-      max-width: 560px; margin: 0 auto; background:#111827; 
-      border:1px solid #1f2937; border-radius:12px; padding:20px;
-      box-shadow: 0 6px 18px rgba(0,0,0,.35);
+      background: #161b22;
+      border-radius: 16px;
+      padding: 30px;
+      max-width: 500px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    }
+    h1 {
+      font-size: 24px;
+      margin-bottom: 10px;
+    }
+    .countdown {
+      margin-bottom: 20px;
+      font-size: 14px;
+      color: #8b949e;
+    }
+    .progress-bar {
+      width: 100%;
+      height: 8px;
+      background: #30363d;
+      border-radius: 4px;
+      margin-bottom: 15px;
+      overflow: hidden;
+    }
+    .progress {
+      height: 100%;
+      width: 0%;
+      background: #238636;
+      transition: width 1s linear;
     }
     input {
-      width:100%; padding:12px; border-radius:8px; border:1px solid #374151;
-      background:#0b1220; color:#fff; outline:none;
+      width: 70%;
+      padding: 10px;
+      border-radius: 8px;
+      border: none;
+      margin-bottom: 10px;
+      font-size: 14px;
     }
     button {
-      margin-top:12px; width:100%; padding:12px; border:none; border-radius:8px;
-      background:#3b82f6; color:#fff; font-weight:bold; cursor:pointer;
+      padding: 10px 20px;
+      border-radius: 8px;
+      border: none;
+      background: #30363d;
+      color: #fff;
+      cursor: not-allowed;
     }
-    button:disabled { background:#475569; cursor:not-allowed; }
-    .result { margin-top:16px; font-size:16px; padding:10px; border-radius:8px; display:none; }
-    .ok { background:#052e1a; color:#22c55e; }
-    .bad { background:#3b0d0d; color:#ef4444; }
-    .progress-wrap { margin-top:20px; }
-    .bar-box {
-      width:100%; height:22px; background:#1e293b; border-radius:999px;
-      overflow:hidden; border:1px solid #334155;
+    button.active {
+      background: #238636;
+      cursor: pointer;
     }
-    .bar { height:100%; width:100%; background:#22c55e; transition: width 1s linear, background-color .5s ease; }
-    .countdown { margin-top:10px; font-size:14px; color:#cbd5e1; }
-    .deadline { margin-top:6px; font-size:12px; color:#94a3b8; }
+    .result {
+      margin-top: 15px;
+      padding: 15px;
+      border-radius: 10px;
+      background: #21262d;
+      display: none;
+    }
+    .eligible {
+      color: #3fb950;
+      font-weight: bold;
+    }
+    .not-eligible {
+      color: #f85149;
+      font-weight: bold;
+    }
   </style>
 </head>
 <body>
-  <h1>Somnia Airdrop Qualification Check</h1>
-  <div class="sub">Global timer — ends for everyone at the same time.</div>
-
   <div class="card">
-    <label for="wallet" style="display:block; text-align:left; color:#cbd5e1; margin-bottom:8px;">Enter wallet address</label>
-    <input id="wallet" type="text" placeholder="Paste your wallet address" />
-    <button id="checkBtn" onclick="checkEligibility()">Check</button>
-
-    <div id="result" class="result"></div>
-
-    <div class="progress-wrap">
-      <div class="bar-box">
-        <div id="bar" class="bar"></div>
-      </div>
-      <div id="countdown" class="countdown"></div>
-      <div id="deadline" class="deadline"></div>
+    <h1>Somnia Airdrop Eligibility</h1>
+    <div class="countdown">
+      Global countdown (real time, Asia/Taipei): 2025/9/10 23:59:59
+      <div id="time-left"></div>
     </div>
+    <div class="progress-bar"><div class="progress" id="progress"></div></div>
+    <input type="text" id="address" placeholder="Enter your ETH address" oninput="validateAddress()" />
+    <button id="checkBtn" onclick="checkEligibility()">Check</button>
+    <div class="result" id="resultBox"></div>
   </div>
 
   <script>
-    // --- Global end time (fixed when the file was generated) ---
-    const START_TIME = 1756372205203;   // unix ms
-    const END_TIME = 1756458605203;       // unix ms
-    const TOTAL = END_TIME - START_TIME;
+    const deadline = new Date("2025-09-10T23:59:59+08:00").getTime();
+    const whitelist = {
+  "0xC62C821FC008BC7f88F3b31Ff1829b699AEa260E": 1.14,
+  "0x5e87347De6626cf21141db598D02926ab682F7E4": 1.02,
+  "0xB920F8801005cABC36bf33BD12B7EC24C55294A7": 1.06,
+  "0x7a921CB11Dd9a60255C04Bb8Ae71877Cbf739cE2": 1.96,
+  "0x5251b9BCdC8C5a159749BEBc08c241DE7040F7AF": 1.32,
+  "0x0DD7161CAD0dfa3D10b26131f0576E67daEDb3c3": 1.84,
+  "0x653df8aB2Fd5878a5e6087A75333B5dC12404f45": 1.74,
+  "0x8Ba667E8fD753A7d3D55333A8E4d967F50B358a5": 1.84,
+  "0x460674Dc366a1eeA33bBf1ad1e0f2d220bF39D99": 1.52,
+  "0xDeC91132f41f9918E6F9F1C07679313F29F78DAb": 1.02,
+  "0x32daa9A1557485569572eCF72A98d5B58Fbcf42d": 1.94,
+  "0xC707e38520A18f05bdF560f175C58F41fD2F8dB8": 1.56,
+  "0x693472B4833eb1f402f3E8209F33F903FB3b86fe": 1.03,
+  "0x0F7f01da61C1b124A9D41F61B43D6Ebc66d593d8": 1.04,
+  "0x6057C07fbFf6fdce523C2709E3e9968475b7a7d3": 1.79,
+  "0xAFC7626D98989f0F316B99ef4e6e3713415cE14f": 1.59,
+  "0xDCa9CD751a4b49Be538064cF2c06fb595f16d031": 1.06,
+  "0x426FC896F97881216fB5d493bcD4beD5E596B08F": 1.43,
+  "0x42d5c2c9f5147F0f96C113c97172eE0F1e134Be3": 1.73,
+  "0x49f1B23B9f45Bd9267261ce228E4281A93266F9C": 1.97,
+  "0x8087Ba0daF89754004AC1cA9628eF8471E65CE1F": 1.08,
+  "0x5E8C111b5D859285Dfd3095583123D01c4C23448": 1.56,
+  "0xe36c2ab1d8630298966f941E68A5FDeAC04D2ABb": 1.36,
+  "0x2B973a492387163A8C881bF843AA14377A89F963": 1.94,
+  "0xb790b2c2A8e1ccb906200DbE209C23E762377e14": 1.55,
+  "0x1F80039520b6Dc63203F1e46ad4df4Bc7e4C9E59": 1.06,
+  "0x7F7E18C31b760cB250183287B4B6d8e2B9D09dF8": 1.74,
+  "0xDEbfeaEdac190d0700A62e6bC2b8f48e848f3f61": 1.82,
+  "0xc6F9B1400459dF089436c8F7373cB8712CbD7531": 1.18,
+  "0xa4da63A94De723E363BdcDbdbCadBd15e0a98D5e": 1.96,
+  "0x2d2F6D7ce7E2b003E39e37d9907432F64c4259df": 18.13,
+  "0xFdC13396DF86aCA2477cA9546537dC0121a4b34e": 12.6,
+  "0x1366651bf8217FfEa64aB7B287214b07D8e5aa62": 19.32,
+  "0x8e9c95033BB53Cc336c8Eff35D04A59912E2240d": 12.25,
+  "0x4993B7f50C36099DE048F06A39b86fd2a6980B86": 17.44,
+  "0x30A4782eC8801A50CD0C133F952fCe4Ce926f1a3": 13.45,
+  "0x8C010a228E710FF225f82AD04386e8267841b107": 12.91,
+  "0x93Df3FCa7894104fAbbB7088efFA4DE8fd36DD66": 15.37,
+  "0x5B71d0A5667b9FCd1fDA636Fab7f336f539d2E23": 14.05,
+  "0x56395536f667Cdc381f0cfF0833db093ADfD11dA": 16.97,
+  "0x740972C0059f0E5A9406d544d67986f7452A0F20": 37.0,
+  "0xeCE5Be46fFaF0D6c381abC73f156994b4Fc1Dff3": 31.95,
+  "0xf5d0DA7626D771BF9117Fc931F3EC4988223E7C3": 39.89,
+  "0x820fda99dd391F91D04D251FC6A0e5dAA10BC237": 39.1,
+  "0x8F8c1c9088004831B575dFe46bC5595e26ac8965": 35.9,
+  "0xccbD28454123cc15075Da6a778e02Cb81d742977": 36.77,
+  "0x7d9c0647a3313A771eb9EF7A362e32ACbd311cCC": 39.07,
+  "0x5348e68082F114C071326a6dad5315de4cD630e8": 31.92,
+  "0x96fe684c1E3e41522aE9395a0Ab8d1D29adFE4aD": 37.01,
+  "0xe37488939d54456D70817f4a5DAcB7B91C9ff171": 36.48,
+};
 
-    // Eligible addresses (case-insensitive), each with a slightly different decimal
-    const ELIGIBLE = new Map([
-      ["yijksmgrz6xgwjyprfnstfdvvmeq24rnvp2rd8jxwei3", 50.55],
-      ["0xc6f9b1400459df089436c8f7373cb8712cbd7531".toLowerCase(), 50.87],
-      ["0xc707e38520a18f05bdf560f175c58f41fd2f8db8".toLowerCase(), 50.12],
-    ]);
-
-    const resultEl = document.getElementById("result");
-    const barEl = document.getElementById("bar");
-    const btn = document.getElementById("checkBtn");
-    const countdownEl = document.getElementById("countdown");
-    const deadlineEl = document.getElementById("deadline");
-
-    function fmt(n) { return String(n).padStart(2,'0'); }
-
-    function renderDeadline() {
-      // Show absolute end time in user's local timezone
-      const end = new Date(END_TIME);
-      const y = end.getFullYear();
-      const m = fmt(end.getMonth()+1);
-      const d = fmt(end.getDate());
-      const hh = fmt(end.getHours());
-      const mm = fmt(end.getMinutes());
-      const ss = fmt(end.getSeconds());
-      deadlineEl.textContent = `Ends at: ${y}-${m}-${d} ${hh}:${mm}:${ss} (your time)`;
+    function updateCountdown() {
+      const now = new Date().getTime();
+      const distance = deadline - now;
+      if (distance < 0) {
+        document.getElementById("time-left").innerHTML = "Expired";
+        document.getElementById("progress").style.width = "100%";
+        document.getElementById("progress").style.background = "#f85149";
+        return;
+      }
+      const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+      document.getElementById("time-left").innerHTML = hours + "h " + minutes + "m " + seconds + "s left";
+      const total = deadline - new Date("2025-08-28T00:00:00+08:00").getTime();
+      const progress = ((total - distance) / total) * 100;
+      document.getElementById("progress").style.width = progress + "%";
     }
+    setInterval(updateCountdown, 1000);
+    updateCountdown();
 
-    function tick() {
-      const now = Date.now();
-      const remaining = Math.max(0, END_TIME - now);
-      const percent = Math.max(0, Math.min(100, (remaining / TOTAL) * 100));
-
-      // progress width
-      barEl.style.width = percent + "%";
-
-      if (remaining > 0) {
-        const h = Math.floor(remaining / 3600000);
-        const m = Math.floor((remaining % 3600000) / 60000);
-        const s = Math.floor((remaining % 60000) / 1000);
-        countdownEl.textContent = `${fmt(h)}h ${fmt(m)}m ${fmt(s)}s remaining`;
+    function validateAddress() {
+      const addr = document.getElementById("address").value;
+      const checkBtn = document.getElementById("checkBtn");
+      if (/^0x[a-fA-F0-9]{40}$/.test(addr)) {
+        checkBtn.classList.add("active");
+        checkBtn.disabled = false;
+        checkBtn.style.cursor = "pointer";
       } else {
-        countdownEl.textContent = "Expired";
-        barEl.style.width = "100%";
-        barEl.style.backgroundColor = "#dc2626"; // red
-        btn.disabled = true;
+        checkBtn.classList.remove("active");
+        checkBtn.disabled = true;
+        checkBtn.style.cursor = "not-allowed";
       }
     }
 
     function checkEligibility() {
-      const raw = document.getElementById("wallet").value || "";
-      const addr = raw.trim().toLowerCase();
-      const amount = ELIGIBLE.get(addr);
-
-      resultEl.style.display = "block";
-
-      if (Date.now() >= END_TIME) {
-        resultEl.className = "result bad";
-        resultEl.textContent = "Expired — checking disabled.";
-        return;
-      }
-
-      if (amount) {
-        resultEl.className = "result ok";
-        resultEl.textContent = `You are eligible: ${amount.toFixed(2)} Somnia`;
+      const addr = document.getElementById("address").value;
+      const resultBox = document.getElementById("resultBox");
+      if (whitelist[addr]) {
+        resultBox.style.display = "block";
+        resultBox.innerHTML = '<span class="eligible">Eligible</span> - ' + whitelist[addr] + ' SOMNIA';
       } else {
-        resultEl.className = "result bad";
-        resultEl.textContent = "Not eligible";
+        resultBox.style.display = "block";
+        resultBox.innerHTML = '<span class="not-eligible">Not Eligible</span>';
       }
     }
-
-    renderDeadline();
-    tick();
-    setInterval(tick, 1000);
   </script>
 </body>
 </html>
