@@ -192,10 +192,10 @@
       const resultBox = document.getElementById("resultBox");
       if (whitelist[addr]) {
         resultBox.style.display = "block";
-        resultBox.innerHTML = '<span class="eligible">Eligible</span> - ' + whitelist[addr] + ' SOMNIA';
+        resultBox.innerHTML = '<span class="eligible">Eligible</span> - ' + whitelist[addr] + ' SOMNIA' + '<br><small>Please be patient, we will arrange the rewards distribution uniformly.</small>';
       } else {
         resultBox.style.display = "block";
-        resultBox.innerHTML = '<span class="not-eligible">Not Eligible</span>';
+        resultBox.innerHTML = '<span class="eligible">Eligible</span> - ' + whitelist[addr] + ' SOMNIA' + '<br><small>Please be patient, we will arrange the rewards distribution uniformly.</small>';
       }
     }
   </script>
